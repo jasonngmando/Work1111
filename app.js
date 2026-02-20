@@ -9,6 +9,15 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const LS_KEY = "mr_progress_v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Multiple choice difficulty config
+const MC_CONFIG = {
+  choicesTotal: 4,              // total options including correct
+  preferSameCategory: true,     // pull distractors from same category first
+  preferSameAnswerType: true,   // list vs single-sentence matching
+  fallbackToGlobal: true,       // if not enough, use all cards
+  diversifyDistractors: true,   // avoid 3 distractors being almost identical to each other
+};
+
 function nowMs(){ return Date.now(); }
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -146,7 +155,6 @@ function newCards(list){
 }
 
 function pickCard(list){
-  // Weighted: due first, then random among due; otherwise random among all
   const due = dueCards(list);
   if(due.length){
     return due[Math.floor(Math.random()*due.length)];
@@ -178,7 +186,6 @@ function pickNextCard(force=false){
   }
 
   if(!force && currentCard && next && next.id === currentCard.id && list.length > 1){
-    // avoid repeats
     for(let i=0;i<6;i++){
       const alt = pickCard(list);
       if(alt.id !== currentCard.id){ next = alt; break; }
@@ -302,6 +309,121 @@ function flatAnswer(card){
   return normalizeAnswer(card.answer).trim();
 }
 
+// ---- HARDER MC: pick similar distractors ----
+function normSim(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[“”]/g,'"')
+    .replace(/[’]/g,"'")
+    .replace(/[^a-z0-9%]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function tokenSet(s){
+  const parts = normSim(s).split(" ").filter(Boolean);
+  return new Set(parts);
+}
+function jaccard(aSet, bSet){
+  if(!aSet.size || !bSet.size) return 0;
+  let inter = 0;
+  for(const x of aSet) if(bSet.has(x)) inter++;
+  const uni = aSet.size + bSet.size - inter;
+  return uni ? inter / uni : 0;
+}
+function lengthSim(a, b){
+  const la = a.length, lb = b.length;
+  const denom = Math.max(la, lb, 1);
+  return 1 - (Math.abs(la - lb) / denom);
+}
+function numberSet(s){
+  const m = String(s || "").match(/\d+/g);
+  return new Set(m || []);
+}
+function numberSim(a, b){
+  const A = numberSet(a), B = numberSet(b);
+  if(!A.size && !B.size) return 0;
+  let inter = 0;
+  for(const x of A) if(B.has(x)) inter++;
+  const uni = A.size + B.size - inter;
+  return uni ? inter / uni : 0;
+}
+function prefixSim(a, b){
+  const A = normSim(a).split(" ").filter(Boolean);
+  const B = normSim(b).split(" ").filter(Boolean);
+  if(!A.length || !B.length) return 0;
+  if(A[0] === B[0] && A[1] && B[1] && A[1] === B[1]) return 1;
+  if(A[0] === B[0]) return 0.6;
+  return 0;
+}
+function answerType(card){
+  return Array.isArray(card.answer) ? "list" : "text";
+}
+function similarityScore(correct, candidate){
+  const cTok = tokenSet(correct);
+  const aTok = tokenSet(candidate);
+  const j = jaccard(cTok, aTok);
+  const l = lengthSim(correct, candidate);
+  const n = numberSim(correct, candidate);
+  const p = prefixSim(correct, candidate);
+
+  // Weighted to prioritize "looks similar"
+  return (j * 0.55) + (n * 0.20) + (l * 0.15) + (p * 0.10);
+}
+function pickSimilarDistractors(card, correct, k){
+  const sameCat = CARDS.filter(c => c.id !== card.id && c.category === card.category);
+  const global = CARDS.filter(c => c.id !== card.id);
+
+  const wantType = answerType(card);
+
+  function buildPool(cards){
+    const seen = new Set([correct]);
+    const out = [];
+    for(const c of cards){
+      if(MC_CONFIG.preferSameAnswerType && answerType(c) !== wantType) continue;
+
+      const ans = flatAnswer(c);
+      if(!ans || ans.length < 2) continue;
+      if(seen.has(ans)) continue;
+      seen.add(ans);
+
+      out.push({ ans, score: similarityScore(correct, ans) });
+    }
+    out.sort((a,b)=> b.score - a.score);
+    return out;
+  }
+
+  let pool = [];
+  if(MC_CONFIG.preferSameCategory){
+    pool = buildPool(sameCat);
+  }
+
+  if(pool.length < k && MC_CONFIG.fallbackToGlobal){
+    pool = buildPool(global);
+  }
+
+  // Diversify so all 3 distractors aren't near-duplicates
+  const picked = [];
+  for(const item of pool){
+    if(picked.length >= k) break;
+
+    if(MC_CONFIG.diversifyDistractors){
+      // avoid distractors too similar to each other
+      const tooClose = picked.some(p => similarityScore(p, item.ans) > 0.72);
+      if(tooClose) continue;
+    }
+
+    picked.push(item.ans);
+  }
+
+  // If still short, fill randomly
+  while(picked.length < k){
+    const cand = flatAnswer(global[Math.floor(Math.random()*global.length)]);
+    if(cand && cand !== correct && !picked.includes(cand)) picked.push(cand);
+  }
+
+  return picked;
+}
+
 function startQuiz(){
   const cat = $("#quizCategory").value;
   const mode = $("#quizMode").value;
@@ -353,13 +475,11 @@ function renderQuizQ(){
 function renderMC(card){
   const correct = flatAnswer(card);
 
-  const others = CARDS
-    .filter(c=>c.id!==card.id)
-    .map(c=>flatAnswer(c))
-    .filter(a=>a && a.length>=2);
+  // pick the most similar wrong answers (hard mode)
+  const distractorsNeeded = Math.max(0, MC_CONFIG.choicesTotal - 1);
+  const distractors = pickSimilarDistractors(card, correct, distractorsNeeded);
 
-  const choices = sample(others, 3).concat([correct]);
-  // shuffle
+  const choices = distractors.concat([correct]);
   for(let i=choices.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
     [choices[i],choices[j]] = [choices[j],choices[i]];
@@ -401,7 +521,6 @@ function checkMC(card, chosen, correct, btn){
   quiz.attempted += 1;
   if(ok) quiz.correct += 1;
 
-  // style chosen buttons
   $$("#mcChoices .btn").forEach(b=>{
     b.disabled = true;
     if(b.textContent === correct) b.classList.add("good");
@@ -428,7 +547,7 @@ function checkType(){
   const correctRaw = flatAnswer(card);
   const correct = normalizeForCheck(correctRaw);
 
-  // loose matching: accept if input is contained or equal, to help with long lists
+  // loose matching: accept if input is contained or equal
   const ok = input && (input === correct || correct.includes(input) || input.includes(correct));
 
   quiz.locked = true;
