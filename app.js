@@ -192,7 +192,7 @@ function setTab(tab){
   if(tab==="progress") renderProgress();
   if(tab==="study") updateDuePill();
 }
-$$(".tabbtn").forEach(btn => btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
+$$(".nav .tabbtn[data-tab]").forEach(btn => btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
 
 // ---------- Toast ----------
 let toastTimer = null;
