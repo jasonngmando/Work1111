@@ -112,7 +112,10 @@ function loadProgress(){
 function saveProgress(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
 
 function defaultCardState(){
-  return { rep:0, interval:0, ef:2.5, due:0, seen:false, lapses:0, reviews:0, correct:0, last:0 };
+  return {
+    rep:0, interval:0, ef:2.5, due:0, seen:false, lapses:0, reviews:0, correct:0, last:0,
+    quizSeen:0, quizFirstTryCorrect:0, quizNeedsRetry:0
+  };
 }
 
 // SM-2-ish scheduling (q: 0..5)
@@ -358,10 +361,24 @@ function wireStudyUI(){
 // ---------- Quiz ----------
 let quiz = null;
 
+function getQuizPool(category, questionMix){
+  const pool = filterCards(category);
+  if(questionMix !== "focus") return pool;
+
+  const focusPool = pool.filter(card=>{
+    const s = stateFor(cardId(card));
+    const seen = s.quizSeen || 0;
+    const firstTryCorrect = s.quizFirstTryCorrect || 0;
+    return seen === 0 || firstTryCorrect < seen;
+  });
+
+  return focusPool.length ? focusPool : pool;
+}
+
 function updateQuizLengthOptions(){
   const quizLen = $("#quizLen");
   const selectedValue = parseInt(quizLen.value || "0", 10);
-  const poolCount = filterCards($("#quizCategory").value).length;
+  const poolCount = getQuizPool($("#quizCategory").value, $("#quizQuestionMix").value).length;
 
   const choices = [5, 10, 15, 20, 25, 30, 40, 50]
     .filter(n => n <= poolCount);
@@ -390,19 +407,22 @@ function hasMCQ(card){
 function startQuiz(){
   const cat = $("#quizCategory").value;
   const mode = $("#quizMode").value; // "mc" | "type"
+  const questionMix = $("#quizQuestionMix").value;
   const len = parseInt($("#quizLen").value, 10);
 
-  const pool = filterCards(cat);
+  const pool = getQuizPool(cat, questionMix);
   const picks = sample(pool, Math.min(len, pool.length));
 
   quiz = {
     mode,
+    questionMix,
     order: picks,
     idx: 0,
     correct: 0,
     attempted: 0,
     locked: false,
-    retryUntilCorrect: !!$("#quizRetryUntilCorrect")?.checked
+    retryUntilCorrect: !!$("#quizRetryUntilCorrect")?.checked,
+    currentQuestionHadMiss: false
   };
 
   $("#qCorrect").textContent = "0";
@@ -415,7 +435,17 @@ function startQuiz(){
 }
 
 function setQuizMeta(card){
-  $("#quizMeta").textContent = `${quiz.idx+1}/${quiz.order.length} • ${cardCategory(card)}`;
+  const mixLabel = quiz.questionMix === "focus" ? "Focus" : "All";
+  $("#quizMeta").textContent = `${quiz.idx+1}/${quiz.order.length} • ${cardCategory(card)} • ${mixLabel}`;
+}
+
+function recordQuizOutcome(card, wasFirstTryCorrect){
+  const id = cardId(card);
+  const s = stateFor(id);
+  s.quizSeen = (s.quizSeen || 0) + 1;
+  if(wasFirstTryCorrect) s.quizFirstTryCorrect = (s.quizFirstTryCorrect || 0) + 1;
+  else s.quizNeedsRetry = (s.quizNeedsRetry || 0) + 1;
+  saveProgress(prog);
 }
 
 function showFeedback(ok, correctText, explanation, detailsHTML = ""){
@@ -488,6 +518,7 @@ function renderMC(card){
 function checkMC(chosenLetter, chosenValue, correctLetter, correctValue, explanation){
   if(!quiz || quiz.locked) return;
 
+  const card = quiz.order[quiz.idx];
   const ok = chosenLetter === correctLetter;
   const requireRetry = quiz.retryUntilCorrect;
 
@@ -504,7 +535,11 @@ function checkMC(chosenLetter, chosenValue, correctLetter, correctValue, explana
 
     showFeedback(ok, String(correctValue ?? ""), explanation);
     $("#quizNext").disabled = false;
+
+    const wasFirstTryCorrect = ok && !quiz.currentQuestionHadMiss;
+    recordQuizOutcome(card, wasFirstTryCorrect);
   } else {
+    quiz.currentQuestionHadMiss = true;
     $$("#mcChoices .btn").forEach(b=>{
       b.classList.remove("again");
       if(b.dataset.key === chosenLetter) b.classList.add("again");
@@ -584,7 +619,11 @@ function checkType(){
     if(ok) quiz.correct += 1;
     showFeedback(ok, correctRaw, "", detailsHTML);
     $("#quizNext").disabled = false;
+
+    const wasFirstTryCorrect = ok && !quiz.currentQuestionHadMiss;
+    recordQuizOutcome(card, wasFirstTryCorrect);
   } else {
+    quiz.currentQuestionHadMiss = true;
     showFeedback(false, "", "Try again — keep answering until you get it correct.", detailsHTML);
     $("#quizNext").disabled = true;
   }
@@ -598,6 +637,7 @@ function renderQuizQ(){
   $("#quizFeedback").innerHTML = "";
   $("#quizNext").disabled = true;
   quiz.locked = false;
+  quiz.currentQuestionHadMiss = false;
 
   setQuizMeta(card);
 
@@ -618,6 +658,7 @@ function renderQuizQ(){
 function wireQuizUI(){
   $("#quizStart").addEventListener("click", startQuiz);
   $("#quizCategory").addEventListener("change", updateQuizLengthOptions);
+  $("#quizQuestionMix").addEventListener("change", updateQuizLengthOptions);
 
   $("#quizNext").addEventListener("click", ()=>{
     if(!quiz) return;
