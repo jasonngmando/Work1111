@@ -10,7 +10,7 @@ const rawData = {
       "007": "before",
       "008": "Specific\nmeasurable\nattainable\nresult oriented\ntime constrained",
       "009": "Know your team goal and be committed to it\nParticipate actively in team activities\nMotivate yourself\nimprove self-confidence\ncooperate with other team members",
-      "010": "Help each other be right - not wrong\nlook for ways to make ideas work- not for reason\nthey won't\nIf in doubt - check it out!\nhelp each other win and take pride in each other's\nvictories\nspeak positively about each other and your\norganization at every opportunity\nMaintain a positive mental attitude no matter what\nthe circumstances are\nAct with initiative and courage as if it all depends\non you\nDo everything with enthusiasm - it's contagious\ndon't lose faith - never give up\nhave fun",
+      "010": "Help each other be right - not wrong\nlook for ways to make ideas work- not for reason they won't\nIf in doubt - check it out!\nhelp each other win and take pride in each other's\nvictories\nspeak positively about each other and your\norganization at every opportunity\nMaintain a positive mental attitude no matter what\nthe circumstances are\nAct with initiative and courage as if it all depends\non you\nDo everything with enthusiasm - it's contagious\ndon't lose faith - never give up\nhave fun",
       "011": "An outward expression of grief, pain or discontent.",
       "012": "spoken",
       "013": "criticism\nsarcasm",
