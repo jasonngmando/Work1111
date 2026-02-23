@@ -16,7 +16,33 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 const LS_KEY = "mr_progress_v2";
 const DAILY_KEY = "mr_daily_count_v2";
+const THEME_KEY = "mr_theme_v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// ---------- Theme ----------
+function preferredTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved === "light" || saved === "dark") return saved;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme){
+  const t = (theme === "dark") ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem(THEME_KEY, t);
+
+  const btn = $("#themeToggle");
+  if(btn){
+    const dark = t === "dark";
+    btn.setAttribute("aria-pressed", dark ? "true" : "false");
+    btn.textContent = dark ? "☀️ Light mode" : "🌙 Dark mode";
+  }
+}
+
+function toggleTheme(){
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
 
 // ---------- Utils ----------
 function nowMs(){ return Date.now(); }
@@ -697,6 +723,8 @@ function wireProgressUI(){
     return;
   }
 
+  applyTheme(preferredTheme());
+
   loadDailyCount();
   updateDuePill();
 
@@ -704,6 +732,9 @@ function wireProgressUI(){
   wireQuizUI();
   wireBrowseUI();
   wireProgressUI();
+
+  const themeBtn = $("#themeToggle");
+  if(themeBtn) themeBtn.addEventListener("click", toggleTheme);
 
   // initial renders
   pickNextCard(true);
