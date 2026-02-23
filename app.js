@@ -578,7 +578,12 @@ function checkMC(chosenLetter, chosenValue, correctLetter, correctValue, explana
       if(b.dataset.key === chosenLetter && !ok) b.classList.add("again");
     });
 
-    showFeedback(ok, String(correctValue ?? ""), explanation);
+    const letterFeedback = ok
+      ? `<div><strong>Letter:</strong> ${escapeHtml(chosenLetter)} ✅</div>`
+      : `<div><strong>Your choice:</strong> <span style="color:var(--bad); font-weight:700">${escapeHtml(chosenLetter)} ❌</span></div>
+         <div><strong>Correct letter:</strong> <span style="color:var(--ok); font-weight:700">${escapeHtml(correctLetter)} ✅</span></div>`;
+
+    showFeedback(ok, String(correctValue ?? ""), explanation, letterFeedback);
     $("#quizNext").disabled = false;
 
     const wasFirstTryCorrect = ok && !quiz.currentQuestionHadMiss;
@@ -589,7 +594,8 @@ function checkMC(chosenLetter, chosenValue, correctLetter, correctValue, explana
       b.classList.remove("again");
       if(b.dataset.key === chosenLetter) b.classList.add("again");
     });
-    showFeedback(false, "", "Try again — keep answering until you get it correct.");
+    const retryLetterFeedback = `<div><strong>Your choice:</strong> <span style="color:var(--bad); font-weight:700">${escapeHtml(chosenLetter)} ❌</span></div>`;
+    showFeedback(false, "", "Try again — keep answering until you get it correct.", retryLetterFeedback);
     $("#quizNext").disabled = true;
   }
 
@@ -607,6 +613,51 @@ function normalizeForCheck(s){
 
 function isLooseTextMatch(input, correct){
   return !!input && (input === correct || correct.includes(input) || input.includes(correct));
+}
+
+function buildWrongPartHighlightHTML(userText, expectedText){
+  const user = String(userText ?? "");
+  const expected = String(expectedText ?? "");
+
+  if(!user.trim()) return '<span class="answer-blank">(blank)</span>';
+  if(!expected.trim()) return `<span class="answer-wrong-whole">${escapeHtml(user)}</span>`;
+
+  const uLower = user.toLowerCase();
+  const eLower = expected.toLowerCase();
+
+  // Completely different shape/content -> highlight whole answer as wrong.
+  const sameLen = uLower.length === eLower.length;
+  const overlap = sameLen
+    ? Array.from(uLower).reduce((acc, ch, i)=> acc + (ch === eLower[i] ? 1 : 0), 0)
+    : 0;
+  if(!sameLen || overlap < Math.ceil(uLower.length * 0.4)){
+    return `<span class="answer-wrong-whole">${escapeHtml(user)}</span>`;
+  }
+
+  // Similar text -> highlight only the wrong middle portion.
+  let prefix = 0;
+  while(prefix < user.length && prefix < expected.length && uLower[prefix] === eLower[prefix]) prefix += 1;
+
+  let suffix = 0;
+  while(
+    suffix < (user.length - prefix)
+    && suffix < (expected.length - prefix)
+    && uLower[user.length - 1 - suffix] === eLower[expected.length - 1 - suffix]
+  ){
+    suffix += 1;
+  }
+
+  const left = user.slice(0, prefix);
+  const middleStart = prefix;
+  const middleEnd = user.length - suffix;
+  const middle = user.slice(middleStart, middleEnd);
+  const right = user.slice(middleEnd);
+
+  if(!middle){
+    return `<span>${escapeHtml(user)}</span>`;
+  }
+
+  return `${escapeHtml(left)}<span class="answer-wrong-char">${escapeHtml(middle)}</span>${escapeHtml(right)}`;
 }
 
 function renderType(card){
@@ -631,8 +682,11 @@ function checkType(){
   if(!quiz || quiz.locked) return;
   const card = quiz.order[quiz.idx];
 
-  const inputs = $$("#typeInputs .typeInputSlot").map(el=> normalizeForCheck(el.value));
-  const expected = splitAnswerParts(card.answer).map(x=> normalizeForCheck(x)).filter(Boolean);
+  const inputEls = $$("#typeInputs .typeInputSlot");
+  const rawInputs = inputEls.map(el=> String(el.value || "").trim());
+  const inputs = rawInputs.map(v=> normalizeForCheck(v));
+  const expectedRaw = splitAnswerParts(card.answer).filter(Boolean);
+  const expected = expectedRaw.map(x=> normalizeForCheck(x)).filter(Boolean);
 
   const correctRaw = normalizeAnswer(card.answer);
 
@@ -649,11 +703,24 @@ function checkType(){
   }
 
   const slotRows = expected.map((corr, idx)=>{
-    const rawInput = String(inputs[idx] || "").trim();
-    const slotOK = isLooseTextMatch(rawInput, corr);
+    const rawInput = String(rawInputs[idx] || "").trim();
+    const normalizedInput = normalizeForCheck(rawInput);
+    const slotOK = isLooseTextMatch(normalizedInput, corr);
     const slotStatus = slotOK ? '<span style="color:var(--ok)">✅</span>' : '<span style="color:var(--bad)">❌</span>';
-    return `<li><strong>Slot ${idx + 1}</strong> ${slotStatus}<br/><span class="muted">Your answer:</span> ${escapeHtml(rawInput || "(blank)")}<br/><span class="muted">Expected:</span> ${escapeHtml(corr)}</li>`;
+    const expectedLabel = escapeHtml(expectedRaw[idx] || corr);
+    const userAnswerHTML = slotOK
+      ? `<span>${escapeHtml(rawInput || "(blank)")}</span>`
+      : buildWrongPartHighlightHTML(rawInput, expectedRaw[idx] || corr);
+    return `<li><strong>Slot ${idx + 1}</strong> ${slotStatus}<br/><span class="muted">Your answer:</span> ${userAnswerHTML}<br/><span class="muted">Expected:</span> ${expectedLabel}</li>`;
   }).join("");
+
+  inputEls.forEach((el, idx)=>{
+    el.classList.remove("input-correct", "input-wrong");
+    const rawInput = String(inputs[idx] || "").trim();
+    const slotOK = isLooseTextMatch(rawInput, expected[idx] || "");
+    el.classList.add(slotOK ? "input-correct" : "input-wrong");
+  });
+
   const detailsHTML = expected.length > 1 ? `<div class="muted" style="margin-bottom:4px">Slot-by-slot check</div><ul style="margin:0 0 0 18px">${slotRows}</ul>` : "";
 
   const requireRetry = quiz.retryUntilCorrect;
@@ -697,6 +764,7 @@ function renderQuizQ(){
     $("#mcArea").style.display = "none";
     $("#typeArea").style.display = "";
     renderType(card);
+    $$("#typeInputs .typeInputSlot").forEach(el=> el.classList.remove("input-correct", "input-wrong"));
   }
 }
 
