@@ -48,6 +48,7 @@ function preferredTheme(){
 function applyTheme(theme){
   const t = (theme === "dark") ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", t);
+  if(document.body) document.body.setAttribute("data-theme", t);
   localStorage.setItem(THEME_KEY, t);
 
   const btn = $("#themeToggle");
@@ -59,7 +60,9 @@ function applyTheme(theme){
 }
 
 function toggleTheme(){
-  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const current = document.documentElement.getAttribute("data-theme")
+    || (document.body && document.body.getAttribute("data-theme"))
+    || "light";
   applyTheme(current === "dark" ? "light" : "dark");
 }
 
