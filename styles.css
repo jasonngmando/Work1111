@@ -53,7 +53,7 @@ header{
   border:1px solid rgba(255,255,255,0.75);
   background:linear-gradient(145deg, rgba(255,255,255,0.86), rgba(255,255,255,0.58));
   box-shadow:var(--shadow);
-  backdrop-filter:blur(18px);
+  backdrop-filter:blur(12px);
 }
 .brand{display:flex;flex-direction:column;gap:8px;max-width:62ch}
 .brand h1{margin:0;font-size:30px;letter-spacing:-0.03em}
@@ -158,7 +158,7 @@ header{
   border-radius:var(--radius);
   padding:18px;
   box-shadow:var(--shadow);
-  backdrop-filter:blur(16px);
+  backdrop-filter:blur(10px);
 }
 .panel h2{margin:0 0 10px 0;font-size:17px;letter-spacing:-0.02em}
 .muted{color:var(--muted)}
@@ -230,6 +230,7 @@ label{font-size:12px;color:var(--muted);display:block;margin:8px 0 6px}
 .type-slot-label{font-size:11px;color:var(--muted);margin-bottom:4px}
 .list{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:6px}
 .item{padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.75)}
+.panel,.item,.cardbox{content-visibility:auto;contain-intrinsic-size:1px 400px}
 .item .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .item h3{margin:0;font-size:14px;line-height:1.35}
 .item details{margin-top:8px}
@@ -241,3 +242,16 @@ label{font-size:12px;color:var(--muted);display:block;margin:8px 0 6px}
 .stat .n{font-size:23px;font-weight:800;letter-spacing:-0.02em}
 hr{border:none;border-top:1px solid rgba(15,23,42,0.09);margin:14px 0}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(16,24,40,0.9);border:1px solid rgba(255,255,255,0.15);color:white;padding:10px 12px;border-radius:12px;display:none}
+
+.perf-lite .ambient{display:none}
+.perf-lite .tabbtn,
+.perf-lite .btn,
+.perf-lite .cardbox,
+.perf-lite .grid{transition:none !important;animation:none !important}
+.perf-lite header,
+.perf-lite .panel{backdrop-filter:none}
+
+@media (prefers-reduced-motion: reduce){
+  .orb,.grid.is-entering,.cardbox.is-flipped::after{animation:none !important}
+  .tabbtn,.btn,.cardbox{transition:none}
+}

@@ -19,6 +19,25 @@ const DAILY_KEY = "mr_daily_count_v2";
 const THEME_KEY = "mr_theme_v1";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// ---------- Performance helpers ----------
+function debounce(fn, wait = 120){
+  let timer = null;
+  return (...args)=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=> fn(...args), wait);
+  };
+}
+
+function shouldUsePerfLite(){
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const lowCpu = Number(navigator.hardwareConcurrency || 8) <= 4;
+  return reduceMotion || lowCpu;
+}
+
+function applyPerformanceMode(){
+  if(shouldUsePerfLite()) document.documentElement.classList.add("perf-lite");
+}
+
 // ---------- Theme ----------
 function preferredTheme(){
   const saved = localStorage.getItem(THEME_KEY);
@@ -644,7 +663,6 @@ function renderBrowse(){
     wrap.appendChild(div);
   });
 
-  renderCheatSheet();
 }
 
 function renderCheatSheet(){
@@ -671,7 +689,8 @@ function renderCheatSheet(){
 }
 
 function wireBrowseUI(){
-  $("#searchInput").addEventListener("input", renderBrowse);
+  const debouncedBrowseRender = debounce(renderBrowse, 100);
+  $("#searchInput").addEventListener("input", debouncedBrowseRender);
   $("#browseCategory").addEventListener("change", renderBrowse);
   $("#browseSort").addEventListener("change", renderBrowse);
 }
@@ -734,6 +753,7 @@ function wireProgressUI(){
     return;
   }
 
+  applyPerformanceMode();
   applyTheme(preferredTheme());
 
   loadDailyCount();
@@ -749,5 +769,6 @@ function wireProgressUI(){
 
   // initial renders
   pickNextCard(true);
+  renderCheatSheet();
   renderBrowse();
 })();
