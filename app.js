@@ -752,12 +752,16 @@ function wireProgressUI(){
 (function init(){
   // safety: CARDS must exist
   if(typeof CARDS === "undefined" || !Array.isArray(CARDS)){
-    console.error("CARDS not found. Check data.js");
-    return;
+    console.error("CARDS not found. Falling back to an empty deck. Check data.js");
+    globalThis.CARDS = [];
   }
 
   applyPerformanceMode();
   applyTheme(preferredTheme());
+
+  // Wire theme toggle first so it still works even if a later UI section fails to initialize.
+  const themeBtn = $("#themeToggle");
+  if(themeBtn) themeBtn.addEventListener("click", toggleTheme);
 
   loadDailyCount();
   updateDuePill();
@@ -766,9 +770,6 @@ function wireProgressUI(){
   wireQuizUI();
   wireBrowseUI();
   wireProgressUI();
-
-  const themeBtn = $("#themeToggle");
-  if(themeBtn) themeBtn.addEventListener("click", toggleTheme);
 
   // initial renders
   pickNextCard(true);
