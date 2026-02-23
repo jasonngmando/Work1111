@@ -359,14 +359,15 @@ function setQuizMeta(card){
   $("#quizMeta").textContent = `${quiz.idx+1}/${quiz.order.length} • ${cardCategory(card)}`;
 }
 
-function showFeedback(ok, correctText, explanation){
+function showFeedback(ok, correctText, explanation, detailsHTML = ""){
   $("#quizFeedback").style.display = "";
   const expl = explanation ? `<div class="muted" style="margin-top:8px">${escapeHtml(explanation)}</div>` : "";
+  const details = detailsHTML ? `<div style="margin-top:8px">${detailsHTML}</div>` : "";
   $("#quizFeedback").innerHTML = ok
     ? `<div style="color:var(--ok); font-weight:800; margin-bottom:6px">Correct ✅</div>
-       <div class="muted">Answer:</div><div>${escapeHtml(correctText)}</div>${expl}`
+       <div class="muted">Answer:</div><div>${renderAnswerHTML(correctText)}</div>${details}${expl}`
     : `<div style="color:var(--bad); font-weight:800; margin-bottom:6px">Not quite ❌</div>
-       <div class="muted">Correct answer:</div><div>${escapeHtml(correctText)}</div>${expl}`;
+       <div class="muted">Correct answer:</div><div>${renderAnswerHTML(correctText)}</div>${details}${expl}`;
 }
 
 function updateQuizStats(){
@@ -496,11 +497,19 @@ function checkType(){
     });
   }
 
+  const slotRows = expected.map((corr, idx)=>{
+    const rawInput = String(inputs[idx] || "").trim();
+    const slotOK = isLooseTextMatch(rawInput, corr);
+    const slotStatus = slotOK ? '<span style="color:var(--ok)">✅</span>' : '<span style="color:var(--bad)">❌</span>';
+    return `<li><strong>Slot ${idx + 1}</strong> ${slotStatus}<br/><span class="muted">Your answer:</span> ${escapeHtml(rawInput || "(blank)")}<br/><span class="muted">Expected:</span> ${escapeHtml(corr)}</li>`;
+  }).join("");
+  const detailsHTML = expected.length > 1 ? `<div class="muted" style="margin-bottom:4px">Slot-by-slot check</div><ul style="margin:0 0 0 18px">${slotRows}</ul>` : "";
+
   quiz.locked = true;
   quiz.attempted += 1;
   if(ok) quiz.correct += 1;
 
-  showFeedback(ok, correctRaw, "");
+  showFeedback(ok, correctRaw, "", detailsHTML);
   updateQuizStats();
   $("#quizNext").disabled = false;
 }
