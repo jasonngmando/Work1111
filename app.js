@@ -8,7 +8,7 @@
        correct: "A"|"B"|"C"|"D",
        explanation: "..."
      }
-   Progress saved in localStorage.
+   Progress saved in IndexedDB (with localStorage fallback).
 */
 
 const $ = (sel) => document.querySelector(sel);
@@ -17,6 +17,11 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const LS_KEY = "mr_progress_v2";
 const DAILY_KEY = "mr_daily_count_v2";
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const DB_NAME = "mr_quiz_db";
+const DB_VERSION = 1;
+const STORE_KV = "kv";
+const STORE_QUIZ_SESSIONS = "quiz_sessions";
 
 // ---------- Performance helpers ----------
 function debounce(fn, wait = 120){
@@ -98,18 +103,93 @@ function sample(arr, n){
   return a.slice(0, n);
 }
 
-// ---------- Progress (SRS) ----------
-function loadProgress(){
+// ---------- Storage (IndexedDB + localStorage fallback) ----------
+function loadLocalJSON(key, fallback = {}){
   try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return {};
+    const raw = localStorage.getItem(key);
+    if(!raw) return fallback;
     const obj = JSON.parse(raw);
-    return obj && typeof obj === "object" ? obj : {};
+    return obj && typeof obj === "object" ? obj : fallback;
   }catch{
-    return {};
+    return fallback;
   }
 }
-function saveProgress(p){ localStorage.setItem(LS_KEY, JSON.stringify(p)); }
+
+function canUseIndexedDB(){
+  return typeof indexedDB !== "undefined";
+}
+
+function openDB(){
+  if(!canUseIndexedDB()) return Promise.resolve(null);
+
+  return new Promise((resolve)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = ()=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains(STORE_KV)) db.createObjectStore(STORE_KV, { keyPath: "key" });
+      if(!db.objectStoreNames.contains(STORE_QUIZ_SESSIONS)) db.createObjectStore(STORE_QUIZ_SESSIONS, { keyPath: "id", autoIncrement: true });
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> resolve(null);
+  });
+}
+
+async function dbGetKV(key){
+  const db = await openDB();
+  if(!db) return null;
+
+  return new Promise((resolve)=>{
+    const tx = db.transaction(STORE_KV, "readonly");
+    const store = tx.objectStore(STORE_KV);
+    const req = store.get(key);
+    req.onsuccess = ()=> resolve(req.result ? req.result.value : null);
+    req.onerror = ()=> resolve(null);
+  });
+}
+
+async function dbSetKV(key, value){
+  const db = await openDB();
+  if(!db) return false;
+
+  return new Promise((resolve)=>{
+    const tx = db.transaction(STORE_KV, "readwrite");
+    tx.objectStore(STORE_KV).put({ key, value });
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> resolve(false);
+  });
+}
+
+async function dbDeleteKV(key){
+  const db = await openDB();
+  if(!db) return false;
+
+  return new Promise((resolve)=>{
+    const tx = db.transaction(STORE_KV, "readwrite");
+    tx.objectStore(STORE_KV).delete(key);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> resolve(false);
+  });
+}
+
+async function dbAddQuizSession(session){
+  const db = await openDB();
+  if(!db) return false;
+
+  return new Promise((resolve)=>{
+    const tx = db.transaction(STORE_QUIZ_SESSIONS, "readwrite");
+    tx.objectStore(STORE_QUIZ_SESSIONS).add(session);
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = ()=> resolve(false);
+  });
+}
+
+// ---------- Progress (SRS) ----------
+let prog = {};
+
+function saveProgress(p){
+  localStorage.setItem(LS_KEY, JSON.stringify(p));
+  void dbSetKV(LS_KEY, p);
+}
 
 function defaultCardState(){
   return {
@@ -190,7 +270,6 @@ function toast(msg){
 }
 
 // ---------- Study (flashcards) ----------
-const prog = loadProgress();
 
 function stateFor(id){
   const k = String(id);
@@ -284,17 +363,18 @@ function flip(){
   setGradeEnabled(flipped);
 }
 
+let dailyCounts = {};
+
 function bumpDailyCount(){
   const k = todayKey();
-  const obj = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}");
-  obj[k] = (obj[k]||0) + 1;
-  localStorage.setItem(DAILY_KEY, JSON.stringify(obj));
-  $("#streak").textContent = obj[k]||0;
+  dailyCounts[k] = (dailyCounts[k]||0) + 1;
+  localStorage.setItem(DAILY_KEY, JSON.stringify(dailyCounts));
+  void dbSetKV(DAILY_KEY, dailyCounts);
+  $("#streak").textContent = dailyCounts[k]||0;
 }
 function loadDailyCount(){
   const k = todayKey();
-  const obj = JSON.parse(localStorage.getItem(DAILY_KEY) || "{}");
-  $("#streak").textContent = obj[k]||0;
+  $("#streak").textContent = dailyCounts[k]||0;
 }
 
 function grade(q){
@@ -342,6 +422,8 @@ function wireStudyUI(){
     if(confirm("Reset all progress? This clears saved schedule + stats.")){
       localStorage.removeItem(LS_KEY);
       localStorage.removeItem(DAILY_KEY);
+      void dbDeleteKV(LS_KEY);
+      void dbDeleteKV(DAILY_KEY);
       location.reload();
     }
   });
@@ -476,6 +558,20 @@ function updateQuizStats(){
 }
 
 function finishQuiz(){
+  if(quiz){
+    const accuracy = quiz.attempted ? Math.round((quiz.correct/quiz.attempted)*100) : 0;
+    void dbAddQuizSession({
+      savedAt: nowMs(),
+      mode: quiz.mode,
+      questionMix: quiz.questionMix,
+      totalQuestions: quiz.order.length,
+      attempted: quiz.attempted,
+      correct: quiz.correct,
+      skipped: quiz.skipped || 0,
+      accuracy
+    });
+  }
+
   $("#quizPill").textContent = "Finished";
   $("#quizQ").textContent = `Done! Score: ${quiz.correct}/${quiz.attempted} (${quiz.attempted?Math.round((quiz.correct/quiz.attempted)*100):0}%) • Skipped: ${quiz.skipped || 0}`;
   $("#mcArea").style.display = "none";
@@ -924,13 +1020,32 @@ function wireProgressUI(){
   });
 }
 
+async function hydratePersistentState(){
+  const dbProgress = await dbGetKV(LS_KEY);
+  const localProgress = loadLocalJSON(LS_KEY, {});
+  prog = (dbProgress && typeof dbProgress === "object") ? dbProgress : localProgress;
+
+  // mirror the selected source so both stores stay in sync
+  localStorage.setItem(LS_KEY, JSON.stringify(prog));
+  void dbSetKV(LS_KEY, prog);
+
+  const dbDaily = await dbGetKV(DAILY_KEY);
+  const localDaily = loadLocalJSON(DAILY_KEY, {});
+  dailyCounts = (dbDaily && typeof dbDaily === "object") ? dbDaily : localDaily;
+
+  localStorage.setItem(DAILY_KEY, JSON.stringify(dailyCounts));
+  void dbSetKV(DAILY_KEY, dailyCounts);
+}
+
 // ---------- Init ----------
-(function init(){
+(async function init(){
   // safety: CARDS must exist
   if(typeof CARDS === "undefined" || !Array.isArray(CARDS)){
     console.error("CARDS not found. Falling back to an empty deck. Check data.js");
     globalThis.CARDS = [];
   }
+
+  await hydratePersistentState();
 
   applyPerformanceMode();
   applyTheme();
