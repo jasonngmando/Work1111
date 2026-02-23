@@ -444,23 +444,50 @@ function normalizeForCheck(s){
     .trim();
 }
 
+function isLooseTextMatch(input, correct){
+  return !!input && (input === correct || correct.includes(input) || input.includes(correct));
+}
+
 function renderType(card){
   // For type mode, keep the original flashcard question
   $("#quizQ").textContent = card.question || "—";
-  $("#typeInput").value = "";
-  $("#typeInput").focus();
+
+  const wrap = $("#typeInputs");
+  const answers = isArr(card.answer) ? card.answer.map(a=>String(a).trim()).filter(Boolean) : [normalizeAnswer(card.answer)];
+
+  wrap.className = "type-inputs";
+  wrap.innerHTML = answers.map((_, idx)=>{
+    const id = `typeInput${idx}`;
+    const slotLabel = answers.length > 1 ? `<div class="type-slot-label">Answer ${idx + 1}</div>` : "";
+    return `<div>${slotLabel}<input id="${id}" class="typeInputSlot" placeholder="Type your answer here..." data-slot="${idx}" /></div>`;
+  }).join("");
+
+  const first = wrap.querySelector(".typeInputSlot");
+  if(first) first.focus();
 }
 
 function checkType(){
   if(!quiz || quiz.locked) return;
   const card = quiz.order[quiz.idx];
 
-  const input = normalizeForCheck($("#typeInput").value);
-  const correctRaw = normalizeAnswer(card.answer);
-  const correct = normalizeForCheck(correctRaw);
+  const inputs = $$("#typeInputs .typeInputSlot").map(el=> normalizeForCheck(el.value));
+  const expected = isArr(card.answer)
+    ? card.answer.map(x=> normalizeForCheck(String(x).trim())).filter(Boolean)
+    : [normalizeForCheck(normalizeAnswer(card.answer))];
 
-  // loose matching (helps long lists)
-  const ok = input && (input === correct || correct.includes(input) || input.includes(correct));
+  const correctRaw = normalizeAnswer(card.answer);
+
+  let ok = false;
+  if(inputs.length === expected.length){
+    const used = new Array(expected.length).fill(false);
+    ok = inputs.every(input=>{
+      if(!input) return false;
+      const idx = expected.findIndex((corr, i)=> !used[i] && isLooseTextMatch(input, corr));
+      if(idx === -1) return false;
+      used[idx] = true;
+      return true;
+    });
+  }
 
   quiz.locked = true;
   quiz.attempted += 1;
@@ -514,8 +541,8 @@ function wireQuizUI(){
   });
 
   $("#checkType").addEventListener("click", checkType);
-  $("#typeInput").addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){
+  $("#typeArea").addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" && e.target && e.target.classList.contains("typeInputSlot")){
       e.preventDefault();
       checkType();
     }
