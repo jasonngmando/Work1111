@@ -71,8 +71,6 @@ header{
 .badge strong{font-weight:700;font-size:18px}
 
 .header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.theme-toggle{min-width:126px;text-align:center}
-
 [data-theme="dark"]{
   --bg:#0b1220;
   --bg-soft:#111a2e;
