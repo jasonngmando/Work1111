@@ -26,10 +26,22 @@ body{
     linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
   color:var(--text);
   min-height:100vh;
+  overflow-x:hidden;
+}
+
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:999px;filter:blur(2px);opacity:.55;animation:float 14s ease-in-out infinite}
+.orb-one{width:240px;height:240px;left:-60px;top:12%;background:radial-gradient(circle, rgba(56,189,248,0.4), rgba(56,189,248,0.02) 72%)}
+.orb-two{width:190px;height:190px;right:6%;top:64%;background:radial-gradient(circle, rgba(99,102,241,0.35), rgba(99,102,241,0.02) 68%);animation-delay:-5s}
+.orb-three{width:140px;height:140px;right:16%;top:16%;background:radial-gradient(circle, rgba(14,165,233,0.32), rgba(14,165,233,0.02) 65%);animation-delay:-2s}
+
+@keyframes float{
+  0%,100%{transform:translateY(0) translateX(0)}
+  50%{transform:translateY(-14px) translateX(8px)}
 }
 
 a{color:var(--accent)}
-.container{max-width:1120px;margin:0 auto;padding:28px 22px 32px}
+.container{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:28px 22px 32px}
 header{
   display:flex;
   align-items:flex-start;
@@ -130,6 +142,11 @@ header{
   color:#0a4ea4;
 }
 .grid{display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px}
+.grid.is-entering{animation:tabIn .33s ease}
+@keyframes tabIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
 @media (max-width:920px){
   .grid{grid-template-columns:1fr}
   header{flex-direction:column;align-items:stretch}
@@ -169,18 +186,34 @@ header{
 
 .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace;font-size:12px;padding:2px 6px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.04)}
 .cardbox{
+  position:relative;
   min-height:250px;
   padding:18px;
   border-radius:16px;
   border:1px solid var(--border);
   background:linear-gradient(180deg, rgba(255,255,255,0.84), rgba(255,255,255,0.68));
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.8);
+  transition:transform .25s ease, box-shadow .25s ease;
 }
+.cardbox::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:16px;
+  background:linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.45) 46%, transparent 62%);
+  transform:translateX(-120%);
+  pointer-events:none;
+}
+.cardbox.is-flipped{transform:rotateX(1.2deg) scale(1.005);box-shadow:0 12px 24px rgba(15,23,42,0.11), inset 0 1px 0 rgba(255,255,255,0.8)}
+.cardbox.is-flipped::after{animation:sheen .7s ease}
+@keyframes sheen{to{transform:translateX(120%)}}
 .q{font-size:16px;line-height:1.5;font-weight:760;letter-spacing:-0.01em}
 .a{margin-top:12px;line-height:1.58;color:#1f2937}
 .a ul{margin:8px 0 0 18px}
 .a li{margin:4px 0}
 .pill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,0.84);color:var(--muted);font-size:12px;font-weight:650}
+.focus-card{margin-top:12px;padding:12px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(160deg, rgba(10,132,255,0.11), rgba(14,165,233,0.04))}
+.focus-title{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#0a4ea4;margin-bottom:6px}
 input,select{
   width:100%;
   padding:10px 12px;
