@@ -358,6 +358,27 @@ function wireStudyUI(){
 // ---------- Quiz ----------
 let quiz = null;
 
+function updateQuizLengthOptions(){
+  const quizLen = $("#quizLen");
+  const selectedValue = parseInt(quizLen.value || "0", 10);
+  const poolCount = filterCards($("#quizCategory").value).length;
+
+  const choices = [5, 10, 15, 20, 25, 30, 40, 50]
+    .filter(n => n <= poolCount);
+
+  if(poolCount > 0 && !choices.includes(poolCount)) choices.push(poolCount);
+  if(poolCount === 0) choices.push(1);
+
+  const uniqueSorted = Array.from(new Set(choices)).sort((a,b)=>a-b);
+  quizLen.innerHTML = uniqueSorted
+    .map(n=>`<option value="${n}">${n}${n === poolCount && poolCount > 20 ? " (All)" : ""}</option>`)
+    .join("");
+
+  const fallback = Math.min(20, Math.max(1, poolCount));
+  if(uniqueSorted.includes(selectedValue)) quizLen.value = String(selectedValue);
+  else quizLen.value = String(uniqueSorted.includes(fallback) ? fallback : uniqueSorted[uniqueSorted.length - 1]);
+}
+
 function hasMCQ(card){
   const m = card && card.mcq;
   if(!m) return false;
@@ -576,6 +597,7 @@ function renderQuizQ(){
 
 function wireQuizUI(){
   $("#quizStart").addEventListener("click", startQuiz);
+  $("#quizCategory").addEventListener("change", updateQuizLengthOptions);
 
   $("#quizNext").addEventListener("click", ()=>{
     if(!quiz) return;
@@ -600,6 +622,8 @@ function wireQuizUI(){
       checkType();
     }
   });
+
+  updateQuizLengthOptions();
 }
 
 // ---------- Browse ----------
