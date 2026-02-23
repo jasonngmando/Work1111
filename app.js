@@ -160,7 +160,13 @@ function setTab(tab){
   });
   ["study","quiz","browse","progress"].forEach(t=>{
     const el = $(`#tab-${t}`);
-    if(el) el.style.display = (t===tab) ? "" : "none";
+    if(!el) return;
+    const isActive = t === tab;
+    el.style.display = isActive ? "" : "none";
+    if(isActive){
+      el.classList.remove("is-entering");
+      requestAnimationFrame(()=> el.classList.add("is-entering"));
+    }
   });
 
   if(tab==="browse") renderBrowse();
@@ -214,6 +220,9 @@ function setGradeEnabled(on){
 
 function renderCard(){
   if(!currentCard) return;
+  const box = $("#cardBox");
+  if(box) box.classList.toggle("is-flipped", flipped);
+
   $("#qText").textContent = currentCard.question || "—";
   $("#aText").innerHTML = renderAnswerHTML(currentCard.answer);
   $("#aText").style.display = flipped ? "" : "none";
@@ -266,6 +275,8 @@ function pickNextCard(force=false){
 function flip(){
   if(!currentCard) return;
   flipped = !flipped;
+  const box = $("#cardBox");
+  if(box) box.classList.toggle("is-flipped", flipped);
   $("#aText").style.display = flipped ? "" : "none";
   setGradeEnabled(flipped);
 }
