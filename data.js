@@ -61,8 +61,7 @@ const CARDS = [
     section: "Monday Review",
     question: "When is the deadline for Monday trainees to submit homework",
     answer: [
-      "Monday trainees must submit homework by 4:30",
-      "pm Thursday same week"
+      "Monday trainees must submit homework by 4:30pm Thursday same week"
     ]
   },
   {
@@ -142,14 +141,10 @@ const CARDS = [
       "look for ways to make ideas work- not for reason",
       "they won't",
       "If in doubt - check it out!",
-      "help each other win and take pride in each other's",
-      "victories",
-      "speak positively about each other and your",
-      "organization at every opportunity",
-      "Maintain a positive mental attitude no matter what",
-      "the circumstances are",
-      "Act with initiative and courage as if it all depends",
-      "on you",
+      "help each other win and take pride in each other's victories",
+      "speak positively about each other and your organization at every opportunity",
+      "Maintain a positive mental attitude no matter what the circumstances are",
+      "Act with initiative and courage as if it all depends on you",
       "Do everything with enthusiasm - it's contagious",
       "don't lose faith - never give up",
       "have fun"
@@ -210,8 +205,7 @@ const CARDS = [
     section: "Monday Review",
     question: "Life is __ what happens to me and ___ how I react to it",
     answer: [
-      "Life is 10% what happens to me and 90% how I",
-      "react to it"
+      "Life is 10% what happens to me and 90% how I react to it"
     ]
   },
   {
@@ -327,8 +321,7 @@ const CARDS = [
       "listen",
       "empathize",
       "thank",
-      "commit",
-      "Handbook 0 分，共 21 分"
+      "commit"
     ]
   },
   {
@@ -336,10 +329,8 @@ const CARDS = [
     section: "Handbook",
     question: "Mission statement",
     answer: [
-      "Every customer must feel welcomed as soon as",
-      "they arrive",
-      "Every customer must be happy and smiling when",
-      "they leave"
+      "Every customer must feel welcomed as soon as they arrive",
+      "Every customer must be happy and smiling when they leave"
     ]
   },
   {
@@ -372,11 +363,9 @@ const CARDS = [
       "1986 Buffet concept is introduced",
       "1988 First mandarin branch in mississauga",
       "1993 grill section is introduced",
-      "2002 head office moves to new corporate",
-      "headquarters",
+      "2002 head office moves to new corporate headquarters",
       "2013 all-you-can-eat sashimi and cotton candy",
-      "2025 mandarin has locations across Ontario",
-      "offering buffet and take-out and delivery"
+      "2025 mandarin has locations across Ontario offering buffet and take-out and delivery"
     ]
   },
   {
@@ -398,21 +387,13 @@ const CARDS = [
     section: "Handbook",
     question: "describe the company values",
     answer: [
-      "CUSTOMERS: we are focused on understanding and",
-      "meeting our customers' needs and expectation",
-      "QUALITY: we deliver a superior mandarin",
-      "experience",
-      "TEAMWORK: we build honest relationships with",
-      "open communication",
-      "ACCOUNTABILITY: we accept our commitments ,",
-      "actions and results.",
-      "PASSION: we are committed to ouru brand and",
-      "show pride in everything we do",
-      "RESPECT: we treat each other equally, accepting",
-      "and embracing diversity",
-      "COMMUNITY: we are dedicated to shaping a better",
-      "future and making efforts in supporting the",
-      "communities which we serve"
+      "CUSTOMERS: we are focused on understanding and meeting our customers' needs and expectation",
+      "QUALITY: we deliver a superior mandarin experience",
+      "TEAMWORK: we build honest relationships with open communication",
+      "ACCOUNTABILITY: we accept our commitments ,actions and results.",
+      "PASSION: we are committed to ouru brand and show pride in everything we do",
+      "RESPECT: we treat each other equally, accepting and embracing diversity",
+      "COMMUNITY: we are dedicated to shaping a better future and making efforts in supporting the communities which we serve"
     ]
   },
   {
@@ -583,8 +564,7 @@ const CARDS = [
       "willful damage to or misappropriate use of",
       "Mandarin Property",
       "Slandering the Mandarin name and or;",
-      "disclosing Mandarin's confidential information",
-      "私權政策"
+      "disclosing Mandarin's confidential information"
     ]
   }
 ];
