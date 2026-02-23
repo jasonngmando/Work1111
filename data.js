@@ -3,7 +3,7 @@ const rawData = {
     mr: {
       "001": "Monday trainees must submit homework by 4:30pm Thursday same week",
       "002": "within 21",
-      "003": "within 1 business day after, within 2 business days\nafter",
+      "003": "within 1 business day after, within 2 business days after",
       "004": "Corrective Action Plan",
       "005": "Verbal notice the improve\nWritten notice to improve\nFinal notice to improve\nWritten termination notice",
       "006": "before",
@@ -50,7 +50,7 @@ const rawData = {
       "047": "colour\nrace\nancestry\nplace of origin\nethnic origin\ncreed\ncitizenship",
       "048": "new year's day\nfamily day\ngood friday\nvictoria day\ncanada day\nlabour day\nthanksgiving\nchristmas\nboxing day",
       "049": "A full-time mandarin employee is an individual who\nis available to work all shifts as scheduled including\nlunch, dinner, weekends and holidays, and who\nworks on average a minimum of 36 hours per week\ncontinuously",
-      "050": "Physical assault on customers, co-workers and the\nmanagement\nuse and/ortrafficking of illegal substances\nbeing under the influence of drugs or alcohol\ninsubordination\ntheft of customers', coworkers' or Mandarin's\nproperty, assets, foods, beverages or cash\nwillful damage to or misappropriate use of\nMandarin Property\nSlandering the Mandarin name and or;\ndisclosing Mandarin's confidential information"
+      "050": "Physical assault on customers, co-workers and themanagement\nuse and/or trafficking of illegal substances\nbeing under the influence of drugs or alcohol insubordination\ntheft of customers', coworkers' or Mandarin's property, assets, foods, beverages or cash\nwillful damage to or misappropriate use of Mandarin Property\nSlandering the Mandarin name and or; disclosing Mandarin's confidential information"
     }
   }
 };
@@ -74,10 +74,7 @@ const CARDS = [
     id: "mr-003",
     section: "Monday Review",
     question: "If you cannot do exercise on scheduled date, you must submit a note by email ___ your absence date. In case of emergency please submit your note by email _____ your absence date",
-    answer: [
-      "within 1 business day after, within 2 business days",
-      "after"
-    ]
+    answer: "within 1 business day after, within 2 business days after"
   },
   {
     id: "mr-004",
@@ -138,8 +135,7 @@ const CARDS = [
     question: "What are the commandments for an enthusiastic team?",
     answer: [
       "Help each other be right - not wrong",
-      "look for ways to make ideas work- not for reason",
-      "they won't",
+      "look for ways to make ideas work- not for reason they won't",
       "If in doubt - check it out!",
       "help each other win and take pride in each other's victories",
       "speak positively about each other and your organization at every opportunity",
@@ -415,8 +411,7 @@ const CARDS = [
     answer: [
       "Share the same goal",
       "fulfill our individual role",
-      "apply the same standards and use the same",
-      "procedures",
+      "apply the same standards and use the same procedures",
       "communicate"
     ]
   },
@@ -468,8 +463,7 @@ const CARDS = [
     section: "Handbook",
     question: "awards and recognitions",
     answer: [
-      "Toronto Sun Reader's choice (best Chinese",
-      "restaurant)",
+      "Toronto Sun Reader's choice (best Chinese restaurant)",
       "Foodservice and Hospitality (company of the year)"
     ]
   },
@@ -554,17 +548,12 @@ const CARDS = [
     section: "Handbook",
     question: "Grounds for terminations",
     answer: [
-      "Physical assault on customers, co-workers and the",
-      "management",
-      "use and/ortrafficking of illegal substances",
-      "being under the influence of drugs or alcohol",
-      "insubordination",
-      "theft of customers', coworkers' or Mandarin's",
-      "property, assets, foods, beverages or cash",
-      "willful damage to or misappropriate use of",
-      "Mandarin Property",
-      "Slandering the Mandarin name and or;",
-      "disclosing Mandarin's confidential information"
+      "Physical assault on customers, co-workers and themanagement",
+      "use and/or trafficking of illegal substances",
+      "being under the influence of drugs or alcohol insubordination",
+      "theft of customers', coworkers' or Mandarin's property, assets, foods, beverages or cash",
+      "willful damage to or misappropriate use of Mandarin Property",
+      "Slandering the Mandarin name and or; disclosing Mandarin's confidential information"
     ]
   }
 ];
