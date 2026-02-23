@@ -412,6 +412,10 @@ function startQuiz(){
 
   const pool = getQuizPool(cat, questionMix);
   const picks = sample(pool, Math.min(len, pool.length));
+  const reserve = sample(
+    pool.filter(card=> !picks.includes(card)),
+    Math.max(0, pool.length - picks.length)
+  );
 
   quiz = {
     mode,
@@ -420,16 +424,20 @@ function startQuiz(){
     idx: 0,
     correct: 0,
     attempted: 0,
+    skipped: 0,
     locked: false,
     retryUntilCorrect: !!$("#quizRetryUntilCorrect")?.checked,
-    currentQuestionHadMiss: false
+    currentQuestionHadMiss: false,
+    reserve
   };
 
   $("#qCorrect").textContent = "0";
   $("#qAttempted").textContent = "0";
+  $("#qSkipped").textContent = "0";
   $("#qAcc").textContent = "0%";
   $("#quizPill").textContent = "In progress";
   $("#quizNext").disabled = true;
+  $("#quizSkip").disabled = false;
 
   renderQuizQ();
 }
@@ -462,8 +470,45 @@ function showFeedback(ok, correctText, explanation, detailsHTML = ""){
 function updateQuizStats(){
   $("#qCorrect").textContent = String(quiz.correct);
   $("#qAttempted").textContent = String(quiz.attempted);
+  $("#qSkipped").textContent = String(quiz.skipped || 0);
   const acc = quiz.attempted ? Math.round((quiz.correct/quiz.attempted)*100) : 0;
   $("#qAcc").textContent = `${acc}%`;
+}
+
+function finishQuiz(){
+  $("#quizPill").textContent = "Finished";
+  $("#quizQ").textContent = `Done! Score: ${quiz.correct}/${quiz.attempted} (${quiz.attempted?Math.round((quiz.correct/quiz.attempted)*100):0}%) • Skipped: ${quiz.skipped || 0}`;
+  $("#mcArea").style.display = "none";
+  $("#typeArea").style.display = "none";
+  $("#quizFeedback").style.display = "none";
+  $("#quizNext").disabled = true;
+  $("#quizSkip").disabled = true;
+}
+
+function skipCurrentQuestion(){
+  if(!quiz) return;
+
+  quiz.skipped += 1;
+  const replacement = quiz.reserve.shift();
+
+  if(replacement){
+    quiz.order[quiz.idx] = replacement;
+    renderQuizQ();
+    updateQuizStats();
+    toast("Question skipped. Replaced with another question.");
+    return;
+  }
+
+  quiz.idx += 1;
+  updateQuizStats();
+
+  if(quiz.idx >= quiz.order.length){
+    finishQuiz();
+    return;
+  }
+
+  renderQuizQ();
+  toast("Question skipped.");
 }
 
 function renderMC(card){
@@ -665,15 +710,15 @@ function wireQuizUI(){
     quiz.idx += 1;
 
     if(quiz.idx >= quiz.order.length){
-      $("#quizPill").textContent = "Finished";
-      $("#quizQ").textContent = `Done! Score: ${quiz.correct}/${quiz.attempted} (${quiz.attempted?Math.round((quiz.correct/quiz.attempted)*100):0}%)`;
-      $("#mcArea").style.display = "none";
-      $("#typeArea").style.display = "none";
-      $("#quizFeedback").style.display = "none";
-      $("#quizNext").disabled = true;
+      finishQuiz();
       return;
     }
     renderQuizQ();
+  });
+
+  $("#quizSkip").addEventListener("click", ()=>{
+    if(!quiz || quiz.idx >= quiz.order.length) return;
+    skipCurrentQuestion();
   });
 
   $("#checkType").addEventListener("click", checkType);
