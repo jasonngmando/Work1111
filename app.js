@@ -26,16 +26,25 @@ function escapeHtml(s){
 }
 function isArr(x){ return Array.isArray(x); }
 
+function splitAnswerParts(ans){
+  if (isArr(ans)) return ans.map(x=>String(x).trim()).filter(Boolean);
+
+  const s = String(ans ?? "").trim();
+  if (!s) return [];
+
+  if (!s.includes(";")) return [s];
+  return s.split(/\s*;\s*/).map(x=>x.trim()).filter(Boolean);
+}
+
 function normalizeAnswer(ans){
-  if (isArr(ans)) return ans.map(x=>String(x).trim()).filter(Boolean).join("; ");
-  return String(ans ?? "").trim();
+  return splitAnswerParts(ans).join("; ");
 }
 function renderAnswerHTML(ans){
-  if (isArr(ans)){
-    const items = ans.map(x=>String(x).trim()).filter(Boolean);
+  const items = splitAnswerParts(ans);
+  if (items.length > 1){
     return "<ul>" + items.map(x => `<li>${escapeHtml(x)}</li>`).join("") + "</ul>";
   }
-  return escapeHtml(String(ans ?? "").trim());
+  return escapeHtml(items[0] || "");
 }
 function renderOptionHTML(text){
   // If it looks like a semicolon-separated list, render bullets for readability
@@ -453,7 +462,7 @@ function renderType(card){
   $("#quizQ").textContent = card.question || "—";
 
   const wrap = $("#typeInputs");
-  const answers = isArr(card.answer) ? card.answer.map(a=>String(a).trim()).filter(Boolean) : [normalizeAnswer(card.answer)];
+  const answers = splitAnswerParts(card.answer);
 
   wrap.className = "type-inputs";
   wrap.innerHTML = answers.map((_, idx)=>{
@@ -471,9 +480,7 @@ function checkType(){
   const card = quiz.order[quiz.idx];
 
   const inputs = $$("#typeInputs .typeInputSlot").map(el=> normalizeForCheck(el.value));
-  const expected = isArr(card.answer)
-    ? card.answer.map(x=> normalizeForCheck(String(x).trim())).filter(Boolean)
-    : [normalizeForCheck(normalizeAnswer(card.answer))];
+  const expected = splitAnswerParts(card.answer).map(x=> normalizeForCheck(x)).filter(Boolean);
 
   const correctRaw = normalizeAnswer(card.answer);
 
