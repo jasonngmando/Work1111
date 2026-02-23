@@ -401,7 +401,8 @@ function startQuiz(){
     idx: 0,
     correct: 0,
     attempted: 0,
-    locked: false
+    locked: false,
+    retryUntilCorrect: !!$("#quizRetryUntilCorrect")?.checked
   };
 
   $("#qCorrect").textContent = "0";
@@ -486,21 +487,33 @@ function renderMC(card){
 
 function checkMC(chosenLetter, chosenValue, correctLetter, correctValue, explanation){
   if(!quiz || quiz.locked) return;
-  quiz.locked = true;
 
   const ok = chosenLetter === correctLetter;
-  quiz.attempted += 1;
-  if(ok) quiz.correct += 1;
+  const requireRetry = quiz.retryUntilCorrect;
 
-  $$("#mcChoices .btn").forEach(b=>{
-    b.disabled = true;
-    if(b.dataset.key === correctLetter) b.classList.add("good");
-    if(b.dataset.key === chosenLetter && !ok) b.classList.add("again");
-  });
+  if(!requireRetry || ok){
+    quiz.locked = true;
+    quiz.attempted += 1;
+    if(ok) quiz.correct += 1;
 
-  showFeedback(ok, String(correctValue ?? ""), explanation);
+    $$("#mcChoices .btn").forEach(b=>{
+      b.disabled = true;
+      if(b.dataset.key === correctLetter) b.classList.add("good");
+      if(b.dataset.key === chosenLetter && !ok) b.classList.add("again");
+    });
+
+    showFeedback(ok, String(correctValue ?? ""), explanation);
+    $("#quizNext").disabled = false;
+  } else {
+    $$("#mcChoices .btn").forEach(b=>{
+      b.classList.remove("again");
+      if(b.dataset.key === chosenLetter) b.classList.add("again");
+    });
+    showFeedback(false, "", "Try again — keep answering until you get it correct.");
+    $("#quizNext").disabled = true;
+  }
+
   updateQuizStats();
-  $("#quizNext").disabled = false;
 }
 
 function normalizeForCheck(s){
@@ -563,13 +576,20 @@ function checkType(){
   }).join("");
   const detailsHTML = expected.length > 1 ? `<div class="muted" style="margin-bottom:4px">Slot-by-slot check</div><ul style="margin:0 0 0 18px">${slotRows}</ul>` : "";
 
-  quiz.locked = true;
-  quiz.attempted += 1;
-  if(ok) quiz.correct += 1;
+  const requireRetry = quiz.retryUntilCorrect;
 
-  showFeedback(ok, correctRaw, "", detailsHTML);
+  if(!requireRetry || ok){
+    quiz.locked = true;
+    quiz.attempted += 1;
+    if(ok) quiz.correct += 1;
+    showFeedback(ok, correctRaw, "", detailsHTML);
+    $("#quizNext").disabled = false;
+  } else {
+    showFeedback(false, "", "Try again — keep answering until you get it correct.", detailsHTML);
+    $("#quizNext").disabled = true;
+  }
+
   updateQuizStats();
-  $("#quizNext").disabled = false;
 }
 
 function renderQuizQ(){
